@@ -1,6 +1,6 @@
 sudo: required
 
-branch:
+branches:
   only:
     - master
 
