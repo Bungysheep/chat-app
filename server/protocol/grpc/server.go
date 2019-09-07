@@ -5,6 +5,8 @@ import (
 	"log"
 	"net"
 
+	chatapi "github.com/bungysheep/chat-app/server/api/chat"
+	chatservice "github.com/bungysheep/chat-app/server/services/chat"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -34,10 +36,16 @@ func (svr *Server) RunGrpcServer(ctx context.Context, grpcPort string) error {
 		return err
 	}
 
+	// Define gRpc server options
 	opts := []grpc.ServerOption{}
 
+	// Create new gRpc server
 	s := grpc.NewServer(opts...)
 
+	// Register Chat service
+	chatapi.RegisterChatServiceServer(s, chatservice.NewChatServiceServer())
+
+	// Register gRpc reflection
 	reflection.Register(s)
 
 	svr.grpcServer = s
