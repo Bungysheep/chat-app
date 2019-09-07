@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 	"os/signal"
 
 	"github.com/bungysheep/chat-app/server/protocol/grpc"
+)
+
+var (
+	grpcPort = flag.String("grpc_port", "50051", "gRpc Port")
 )
 
 func main() {
@@ -17,6 +22,8 @@ func main() {
 }
 
 func runServer() error {
+	flag.Parse()
+
 	ctx := context.Background()
 
 	grpcServer := &grpc.Server{}
@@ -36,7 +43,7 @@ func runServer() error {
 		}
 	}()
 
-	if err := grpcServer.RunGrpcServer(ctx, "50051"); err != nil {
+	if err := grpcServer.RunGrpcServer(ctx, *grpcPort); err != nil {
 		return err
 	}
 
