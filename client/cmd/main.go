@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
 
 	"github.com/bungysheep/chat-app/client/api/chat"
 	"google.golang.org/grpc"
@@ -46,28 +47,24 @@ func main() {
 		subCliDone <- true
 	}()
 
+	interuptSignal := make(chan os.Signal, 1)
+	signal.Notify(interuptSignal, os.Interrupt)
+
 	sc := bufio.NewScanner(os.Stdin)
 	sc.Split(bufio.ScanLines)
 
 	for {
 		select {
+		case <-interuptSignal:
+			unsubscribe(ctx, cliConn, chatSvcCli, subCliDone)
+			return
 		default:
 			if sc.Scan() {
 				text := sc.Text()
 				if text != "" {
 					switch text {
 					case "<exit>":
-						_, err := chatSvcCli.Send(ctx, &chat.SendRequest{Message: &chat.Message{Text: "<exit>"}})
-						if err != nil {
-							log.Printf("Failed to send SendRequest: %v", err)
-						}
-
-						<-subCliDone
-
-						log.Printf("gRpc client is closing...\n")
-						cliConn.Close()
-
-						ctx.Done()
+						unsubscribe(ctx, cliConn, chatSvcCli, subCliDone)
 						return
 					default:
 						_, err := chatSvcCli.Send(ctx, &chat.SendRequest{Message: &chat.Message{Text: text}})
@@ -79,4 +76,18 @@ func main() {
 			}
 		}
 	}
+}
+
+func unsubscribe(ctx context.Context, cliConn *grpc.ClientConn, chatSvcCli chat.ChatServiceClient, subCliDone chan bool) {
+	_, err := chatSvcCli.Send(ctx, &chat.SendRequest{Message: &chat.Message{Text: "<exit>"}})
+	if err != nil {
+		log.Printf("Failed to send SendRequest: %v", err)
+	}
+
+	<-subCliDone
+
+	log.Printf("gRpc client is closing...\n")
+	cliConn.Close()
+
+	ctx.Done()
 }
