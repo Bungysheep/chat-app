@@ -27,7 +27,7 @@ func (cs *chatServiceServer) Send(ctx context.Context, req *chat.SendRequest) (*
 	} else {
 		log.Printf("Received message: nil")
 	}
-	return nil, nil
+	return &chat.SendResponse{}, nil
 }
 
 func (cs *chatServiceServer) Subscribe(req *chat.SubscribeRequest, ss chat.ChatService_SubscribeServer) error {

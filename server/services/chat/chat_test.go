@@ -21,8 +21,8 @@ func TestSendNilMessage(t *testing.T) {
 		t.Errorf("Expected no Error, but got %v", err)
 	}
 
-	if sendResp != nil {
-		t.Errorf("Expected no Send Response, but got %v", sendResp.String())
+	if sendResp == nil {
+		t.Errorf("Expected a Send Response, but got no Send Response")
 	}
 }
 
@@ -37,8 +37,8 @@ func TestSendEmptyMessage(t *testing.T) {
 		t.Errorf("Expected no Error, but got %v", err)
 	}
 
-	if sendResp != nil {
-		t.Errorf("Expected no Send Response, but got %v", sendResp.String())
+	if sendResp == nil {
+		t.Errorf("Expected a Send Response, but got no Send Response")
 	}
 }
 
@@ -53,8 +53,8 @@ func TestSendAMessage(t *testing.T) {
 		t.Errorf("Expected no Error, but got %v", err)
 	}
 
-	if sendResp != nil {
-		t.Errorf("Expected no Send Response, but got %v", sendResp.String())
+	if sendResp == nil {
+		t.Errorf("Expected a Send Response, but got no Send Response")
 	}
 }
 
