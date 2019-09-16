@@ -8,19 +8,28 @@ import (
 )
 
 type chatServiceServer struct {
-	messages chan string
+	chatSubSvr chat.ChatService_SubscribeServer
+	err        chan error
 }
 
 // NewChatServiceServer is the Chat service implementation
 func NewChatServiceServer() chat.ChatServiceServer {
-	return &chatServiceServer{messages: make(chan string, 100)}
+	return &chatServiceServer{chatSubSvr: nil, err: make(chan error, 1)}
 }
 
 func (cs *chatServiceServer) Send(ctx context.Context, req *chat.SendRequest) (*chat.SendResponse, error) {
 	if req.GetMessage() != nil {
 		if req.GetMessage().GetText() != "" {
 			log.Printf("Received message: %s", req.GetMessage().GetText())
-			cs.messages <- req.GetMessage().GetText()
+
+			if req.GetMessage().GetText() == "<exit>" {
+				cs.err <- nil
+			}
+			if err := cs.chatSubSvr.Send(&chat.SubscribeResponse{Message: req.GetMessage()}); err != nil {
+				log.Printf("Failed to stream SubscribeResponse: %v", err)
+
+				cs.err <- err
+			}
 		} else {
 			log.Printf("Receive message: <empty>")
 		}
@@ -31,20 +40,9 @@ func (cs *chatServiceServer) Send(ctx context.Context, req *chat.SendRequest) (*
 }
 
 func (cs *chatServiceServer) Subscribe(req *chat.SubscribeRequest, ss chat.ChatService_SubscribeServer) error {
-	for {
-		message := <-cs.messages
-		if message == "<exit>" {
-			return nil
-		}
+	log.Printf("Chat subscription is starting...")
 
-		chatMessage := &chat.Message{
-			Text: message,
-		}
-		if err := ss.Send(&chat.SubscribeResponse{Message: chatMessage}); err != nil {
-			cs.messages <- message
-			log.Printf("Failed to stream SubscribeResponse: %v", err)
-			return err
-		}
-		log.Printf("Sent message: %v", chatMessage)
-	}
+	cs.chatSubSvr = ss
+
+	return <-cs.err
 }
