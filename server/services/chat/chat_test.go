@@ -9,6 +9,8 @@ import (
 	"github.com/bungysheep/chat-app/server/api/chat"
 	"github.com/bungysheep/chat-app/server/api/chat/mock"
 	"github.com/golang/mock/gomock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestSendNilMessage(t *testing.T) {
@@ -40,6 +42,29 @@ func TestSendEmptyMessage(t *testing.T) {
 
 	if sendResp == nil {
 		t.Errorf("Expected a Send Response, but got no Send Response")
+	}
+}
+
+func TestSendMessageWithoutSubscriber(t *testing.T) {
+	ctl := gomock.NewController(t)
+	defer ctl.Finish()
+
+	ctx := context.Background()
+
+	chatSvc := NewChatServiceServer()
+
+	resp, err := chatSvc.Send(ctx, &chat.SendRequest{Message: &chat.Message{Text: "Hello World!"}})
+	if err == nil {
+		t.Errorf("Expected an Error, but got no Error")
+	} else {
+		s, _ := status.FromError(err)
+		if s.Code() != codes.NotFound {
+			t.Errorf("Expected '%s' error, but got '%s'", codes.NotFound, s.Code())
+		}
+	}
+
+	if resp != nil {
+		t.Errorf("Expected no SendResponse, but got %v", resp)
 	}
 }
 
@@ -86,7 +111,7 @@ func TestSendAndSubscribeMessageWhenStreamResponseFail(t *testing.T) {
 	done := make(chan bool, 1)
 	go func() {
 		if err := chatSvc.Subscribe(&chat.SubscribeRequest{}, mChatSubSvc); err == nil {
-			t.Errorf("Expected a Error, but got no Error")
+			t.Errorf("Expected an Error, but got no Error")
 		}
 		done <- true
 	}()

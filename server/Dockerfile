@@ -10,4 +10,6 @@ COPY . .
 
 RUN go build -o ./bin/chat-server ./cmd
 
+EXPOSE 50051
+
 CMD ["./bin/chat-server"]

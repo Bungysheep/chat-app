@@ -16,11 +16,21 @@ import (
 func main() {
 	ctx := context.Background()
 
+	hostname := "localhost"
+	if os.Getenv("HOSTNAME") != "" {
+		hostname = os.Getenv("HOSTNAME")
+	}
+
+	port := "50051"
+	if os.Getenv("PORT") != "" {
+		port = os.Getenv("PORT")
+	}
+
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
 	}
 
-	cliConn, err := grpc.Dial("localhost:50051", opts...)
+	cliConn, err := grpc.Dial(fmt.Sprintf("%s:%s", hostname, port), opts...)
 	if err != nil {
 		log.Fatalf("Failed to dial with server: %v", err)
 	}
