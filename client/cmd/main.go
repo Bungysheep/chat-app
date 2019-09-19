@@ -37,9 +37,24 @@ func main() {
 
 	chatSvcCli := chat.NewChatServiceClient(cliConn)
 
+	sc := bufio.NewScanner(os.Stdin)
+	sc.Split(bufio.ScanLines)
+
+	fmt.Printf("SendID:")
+	sendID := ""
+	if sc.Scan() {
+		sendID = sc.Text()
+	}
+
+	fmt.Printf("SubID:")
+	subID := ""
+	if sc.Scan() {
+		subID = sc.Text()
+	}
+
 	subCliDone := make(chan bool, 1)
 	go func() {
-		chatSubCli, err := chatSvcCli.Subscribe(ctx, &chat.SubscribeRequest{})
+		chatSubCli, err := chatSvcCli.Subscribe(ctx, &chat.SubscribeRequest{SubId: sendID})
 		if err != nil {
 			log.Printf("Failed to stream SubscribeResponse: %v", err)
 		}
@@ -52,7 +67,7 @@ func main() {
 				log.Printf("Failed to receive SubscribeResponse: %v", err)
 				break
 			}
-			fmt.Printf("(SERVER): %s\n", resp.GetMessage().GetText())
+			fmt.Printf("(%s): %s\n", resp.GetMessage().GetSendId(), resp.GetMessage().GetText())
 		}
 		subCliDone <- true
 	}()
@@ -60,13 +75,10 @@ func main() {
 	interuptSignal := make(chan os.Signal, 1)
 	signal.Notify(interuptSignal, os.Interrupt)
 
-	sc := bufio.NewScanner(os.Stdin)
-	sc.Split(bufio.ScanLines)
-
 	for {
 		select {
 		case <-interuptSignal:
-			unsubscribe(ctx, cliConn, chatSvcCli, subCliDone)
+			unsubscribe(ctx, cliConn, chatSvcCli, sendID, subCliDone)
 			return
 		default:
 			if sc.Scan() {
@@ -74,10 +86,10 @@ func main() {
 				if text != "" {
 					switch text {
 					case "<exit>":
-						unsubscribe(ctx, cliConn, chatSvcCli, subCliDone)
+						unsubscribe(ctx, cliConn, chatSvcCli, sendID, subCliDone)
 						return
 					default:
-						_, err := chatSvcCli.Send(ctx, &chat.SendRequest{Message: &chat.Message{Text: text}})
+						_, err := chatSvcCli.Send(ctx, &chat.SendRequest{SubId: subID, Message: &chat.Message{SendId: sendID, Text: text}})
 						if err != nil {
 							log.Printf("Failed to send SendRequest: %v", err)
 						}
@@ -88,8 +100,8 @@ func main() {
 	}
 }
 
-func unsubscribe(ctx context.Context, cliConn *grpc.ClientConn, chatSvcCli chat.ChatServiceClient, subCliDone chan bool) {
-	_, err := chatSvcCli.Send(ctx, &chat.SendRequest{Message: &chat.Message{Text: "<exit>"}})
+func unsubscribe(ctx context.Context, cliConn *grpc.ClientConn, chatSvcCli chat.ChatServiceClient, id string, subCliDone chan bool) {
+	_, err := chatSvcCli.Send(ctx, &chat.SendRequest{SubId: id, Message: &chat.Message{Text: "<exit>"}})
 	if err != nil {
 		log.Printf("Failed to send SendRequest: %v", err)
 	}
