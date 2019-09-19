@@ -7,13 +7,17 @@ option go_package="chat";
 import "google/protobuf/timestamp.proto";
 
 message Message {
-    string text = 1;
+    string send_id = 1;
 
-    google.protobuf.Timestamp sent_at = 2;
+    string text = 2;
+
+    google.protobuf.Timestamp sent_at = 3;
 }
 
 message SendRequest {
-    Message message = 1;
+    string sub_id = 1;
+
+    Message message = 2;
 }
 
 message SendResponse {
@@ -21,7 +25,7 @@ message SendResponse {
 }
 
 message SubscribeRequest {
-
+    string sub_id = 1;
 }
 
 message SubscribeResponse {
